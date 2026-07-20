@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pass_Strength Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0a0e1a;
+  --surface:#111827;
+  --surface2:#1a2236;
+  --surface3:#1f2d47;
+  --border:#1e2d45;
+  --border2:#2a3f60;
+  --accent:#3b82f6;
+  --accent2:#6366f1;
+  --accent-glow:rgba(59,130,246,0.15);
+  --green:#22c55e;
+  --yellow:#eab308;
+  --orange:#f97316;
+  --red:#ef4444;
+  --text:#f1f5f9;
+  --text2:#94a3b8;
+  --text3:#475569;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+  --radius:12px;
+  --radius-sm:8px;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  min-height:100vh;
+  padding:2rem 1rem;
+  line-height:1.6;
+}
+
+/* Subtle grid bg */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+  background-size:40px 40px;
+  pointer-events:none;
+  z-index:0;
+}
+
+.wrapper{position:relative;z-index:1;max-width:820px;margin:0 auto;}
+
+/* Header */
+.header{text-align:center;margin-bottom:2.5rem;}
+.logo{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:100px;padding:8px 18px;margin-bottom:1.5rem;
+  font-size:13px;color:var(--accent);font-weight:500;letter-spacing:0.03em;
+}
+.logo i{font-size:16px;}
+.header h1{
+  font-size:clamp(28px,5vw,42px);font-weight:700;
+  background:linear-gradient(135deg,#f1f5f9 0%,#94a3b8 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:0.5rem;letter-spacing:-0.02em;
+}
+.header p{font-size:15px;color:var(--text2);max-width:480px;margin:0 auto;}
+
+/* Main grid */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.grid-full{grid-column:1/-1;}
+
+/* Card */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:1.25rem 1.5rem;
+}
+.card-label{
+  font-size:11px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem;
+  display:flex;align-items:center;gap:6px;
+}
+.card-label i{font-size:14px;color:var(--accent);}
+
+/* Input */
+.input-area{position:relative;margin-bottom:0;}
+.pwd-input{
+  width:100%;padding:14px 50px 14px 16px;
+  background:var(--surface2);
+  border:1.5px solid var(--border2);
+  border-radius:var(--radius-sm);
+  font-size:16px;font-family:var(--mono);
+  color:var(--text);outline:none;letter-spacing:0.08em;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.pwd-input::placeholder{font-family:var(--sans);letter-spacing:0;color:var(--text3);font-size:14px;}
+.pwd-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);}
+.eye-btn{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--text3);cursor:pointer;
+  transition:color 0.2s;padding:4px;
+}
+.eye-btn:hover{color:var(--accent);}
+.eye-btn i{font-size:18px;}
+
+/* Strength meter */
+.strength-section{margin-top:1rem;}
+.strength-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.strength-label{font-size:13px;color:var(--text2);}
+.strength-badge{
+  font-size:12px;font-weight:600;padding:3px 10px;
+  border-radius:100px;background:var(--surface3);color:var(--text2);
+  transition:all 0.3s;
+}
+.bar-track{
+  height:6px;background:var(--surface3);border-radius:3px;
+  overflow:hidden;margin-bottom:6px;
+}
+.bar-fill{
+  height:100%;border-radius:3px;width:0%;
+  transition:width 0.5s cubic-bezier(.4,0,.2,1),background 0.4s;
+}
+.seg-row{display:flex;gap:4px;margin-bottom:0;}
+.seg{
+  flex:1;height:3px;border-radius:2px;
+  background:var(--surface3);transition:background 0.3s;
+}
+
+/* Score cards */
+.score-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.sc{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px;text-align:center;
+}
+.sc-val{font-size:20px;font-weight:700;font-family:var(--mono);color:var(--accent);}
+.sc-lbl{font-size:10px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:0.05em;}
+
+/* Checks */
+.checks-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.chk{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:var(--radius-sm);
+  background:var(--surface2);border:1px solid var(--border);
+  transition:all 0.3s;
+}
+.chk.pass{background:rgba(34,197,94,0.07);border-color:rgba(34,197,94,0.25);}
+.chk.fail{opacity:0.5;}
+.chk-icon{font-size:16px;color:var(--text3);width:18px;flex-shrink:0;}
+.chk.pass .chk-icon{color:var(--green);}
+.chk-text{font-size:12px;color:var(--text2);}
+.chk.pass .chk-text{color:var(--text);}
+
+/* Entropy */
+.entropy-row{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);}
+.entropy-val{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--accent);min-width:80px;}
+.entropy-bar-wrap{flex:1;}
+.entropy-desc{font-size:12px;color:var(--text2);margin-top:3px;}
+.entropy-track{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-bottom:4px;}
+.entropy-fill{height:100%;border-radius:2px;background:var(--accent);transition:width 0.5s;}
+
+/* Pattern analysis */
+.pattern-list{display:flex;flex-direction:column;gap:6px;}
+.pattern-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;border-radius:var(--radius-sm);
+  background:var(--surface2);border:1px solid var(--border);
+  font-size:12px;
+}
+.pattern-name{color:var(--text2);display:flex;align-items:center;gap:6px;}
+.pattern-name i{font-size:14px;}
+.pattern-badge{
+  font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px;
+}
+.badge-warn{background:rgba(234,179,8,0.15);color:var(--yellow);}
+.badge-danger{background:rgba(239,68,68,0.15);color:var(--red);}
+.badge-ok{background:rgba(34,197,94,0.1);color:var(--green);}
+.badge-info{background:rgba(59,130,246,0.12);color:var(--accent);}
+
+/* Crack time table */
+.crack-table{width:100%;border-collapse:collapse;font-size:12px;}
+.crack-table th{
+  text-align:left;padding:8px 10px;
+  color:var(--text3);font-weight:500;font-size:11px;
+  text-transform:uppercase;letter-spacing:0.05em;
+  border-bottom:1px solid var(--border);
+}
+.crack-table td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text2);}
+.crack-table tr:last-child td{border-bottom:none;}
+.crack-table td:last-child{font-family:var(--mono);font-size:11px;}
+.ct-val{font-weight:600;}
+.ct-instant{color:var(--red);}
+.ct-fast{color:var(--orange);}
+.ct-medium{color:var(--yellow);}
+.ct-slow{color:var(--green);}
+
+/* Generator */
+.gen-output{
+  width:100%;padding:12px 14px;
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--radius-sm);font-family:var(--mono);font-size:14px;
+  color:var(--text);letter-spacing:0.06em;margin-bottom:10px;
+  outline:none;cursor:default;
+}
+.gen-controls{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+.slider-row{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text2);}
+.slider-row label{min-width:60px;}
+.slider-row span{min-width:24px;text-align:right;font-family:var(--mono);color:var(--text);}
+input[type=range]{
+  flex:1;height:4px;-webkit-appearance:none;
+  background:var(--surface3);border-radius:2px;outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;
+  border-radius:50%;background:var(--accent);cursor:pointer;
+  border:2px solid var(--bg);
+}
+.toggle-row{display:flex;flex-wrap:wrap;gap:6px;}
+.tog{
+  display:flex;align-items:center;gap:6px;padding:5px 10px;
+  border-radius:100px;border:1px solid var(--border2);
+  background:var(--surface2);cursor:pointer;font-size:11px;
+  color:var(--text2);transition:all 0.2s;user-select:none;
+}
+.tog.active{background:rgba(59,130,246,0.12);border-color:var(--accent);color:var(--accent);}
+.tog i{font-size:12px;}
+.btn-row{display:flex;gap:8px;}
+.btn{
+  flex:1;padding:11px;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;cursor:pointer;
+  border:none;transition:all 0.2s;display:flex;
+  align-items:center;justify-content:center;gap:6px;
+}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#2563eb;transform:translateY(-1px);}
+.btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border2);}
+.btn-secondary:hover{background:var(--surface3);color:var(--text);}
+.copied{
+  font-size:11px;color:var(--green);
+  opacity:0;transition:opacity 0.3s;text-align:center;margin-top:4px;
+}
+
+/* History */
+.history-list{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;}
+.history-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+}
+.hist-pwd{font-family:var(--mono);font-size:12px;color:var(--text2);flex:1;}
+.hist-score{font-size:11px;padding:2px 8px;border-radius:100px;font-weight:600;}
+.hist-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px;}
+.hist-del:hover{color:var(--red);}
+.empty-hist{font-size:12px;color:var(--text3);text-align:center;padding:1rem;}
+
+/* Tip */
+.tip{
+  display:flex;gap:10px;align-items:flex-start;
+  background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.2);
+  border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:#93c5fd;
+  margin-top:0;
+}
+.tip i{font-size:16px;margin-top:1px;flex-shrink:0;color:var(--accent);}
+
+/* Responsive */
+@media(max-width:600px){
+  .grid{grid-template-columns:1fr;}
+  .score-row{grid-template-columns:repeat(2,1fr);}
+  .checks-grid{grid-template-columns:1fr;}
+}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo"><i class="ti ti-shield-lock"></i> Pass_Strength Analyzer</div>
+    <h1>Pass_Strength Analyzer</h1>
+    <p>Real-time entropy analysis, pattern detection, and multi-vector crack time estimation</p>
+  </div>
+
+  <!-- Row 1: Input + Strength -->
+  <div style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-label"><i class="ti ti-password"></i> Password input</div>
+      <div class="input-area">
+        <input class="pwd-input" type="password" id="pwdInput" placeholder="Enter password to analyze..." autocomplete="off" spellcheck="false"/>
+        <button class="eye-btn" id="toggleBtn" aria-label="Toggle visibility"><i class="ti ti-eye" id="eyeIcon"></i></button>
+      </div>
+      <div class="strength-section">
+        <div class="strength-row">
+          <span class="strength-label">Overall strength</span>
+          <span class="strength-badge" id="strengthBadge">No input</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+        <div class="seg-row" id="segRow">
+          <div class="seg" id="s0"></div><div class="seg" id="s1"></div>
+          <div class="seg" id="s2"></div><div class="seg" id="s3"></div><div class="seg" id="s4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Score cards -->
+  <div style="margin-bottom:16px;">
+    <div class="score-row">
+      <div class="sc"><div class="sc-val" id="scLen">0</div><div class="sc-lbl">Length</div></div>
+      <div class="sc"><div class="sc-val" id="scScore">0/10</div><div class="sc-lbl">Score</div></div>
+      <div class="sc"><div class="sc-val" id="scEntropy">0 bit</div><div class="sc-lbl">Entropy</div></div>
+      <div class="sc"><div class="sc-val" id="scCharset">0</div><div class="sc-lbl">Charset size</div></div>
+    </div>
+  </div>
+
+  <!-- Row 3: Checks + Entropy -->
+  <div class="grid" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-label"><i class="ti ti-checklist"></i> Security checks</div>
+      <div class="checks-grid">
+        <div class="chk fail" id="chkLen"><span class="chk-icon"><i class="ti ti-circle-check"></i></span><span class="chk-text">8+ characters</span></div>
+        <div class="chk fail" id="chkLong"><span class="chk-icon"><i class="ti ti-circle-check"></i></span><span class="chk-text">16+ characters</span></div>
+        <div class="chk fail" id="chkUpper"><span class="chk-icon"><i class="ti ti-circle-check"></i></span><span class="chk-text">Uppercase (A–Z)</span></div>
+        <div class="chk fail" id="chkLower"><span class="chk-icon"><i class="ti ti-circle-check"></i></span><span class="chk-text">Lowercase (a–z)</span></div>
+        <div class="chk fail" id="chkNum"><span class="chk-icon"><i class="ti ti-circle-check"></i></span><span class="chk-text">Numbers (0–9)</span></div>
+        <div class="chk fail" id="chkSpecial"><span class="chk-icon"><i class="ti ti-circle-check"></i></span><span class="chk-text">Special chars</span></div>
+        <div class="chk fail" id="chkNoSeq"><span class="chk-icon"><i class="ti ti-circle-check"></i></span><span class="chk-text">No sequences</span></div>
+        <div class="chk fail" id="chkNoRepeat"><span class="chk-icon"><i class="ti ti-circle-check"></i></span><span class="chk-text">No repeating chars</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><i class="ti ti-chart-bar"></i> Entropy analysis</div>
+      <div class="entropy-row" style="margin-bottom:10px;">
+        <div class="entropy-val" id="entropyVal">0 bit</div>
+        <div class="entropy-bar-wrap">
+          <div class="entropy-track"><div class="entropy-fill" id="entropyFill" style="width:0%"></div></div>
+          <div class="entropy-desc" id="entropyDesc">No password entered</div>
+        </div>
+      </div>
+      <div class="card-label" style="margin-top:0.75rem;"><i class="ti ti-scan"></i> Pattern detection</div>
+      <div class="pattern-list" id="patternList">
+        <div class="pattern-item"><span class="pattern-name"><i class="ti ti-dots"></i> Keyboard walk</span><span class="pattern-badge badge-info" id="patKbd">—</span></div>
+        <div class="pattern-item"><span class="pattern-name"><i class="ti ti-calendar"></i> Date pattern</span><span class="pattern-badge badge-info" id="patDate">—</span></div>
+        <div class="pattern-item"><span class="pattern-name"><i class="ti ti-repeat"></i> Repeated chars</span><span class="pattern-badge badge-info" id="patRepeat">—</span></div>
+        <div class="pattern-item"><span class="pattern-name"><i class="ti ti-sort-ascending"></i> Sequential</span><span class="pattern-badge badge-info" id="patSeq">—</span></div>
+        <div class="pattern-item"><span class="pattern-name"><i class="ti ti-user"></i> Common word</span><span class="pattern-badge badge-info" id="patCommon">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Crack time + Generator -->
+  <div class="grid" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-label"><i class="ti ti-clock-bolt"></i> Crack time estimation</div>
+      <table class="crack-table">
+        <thead>
+          <tr><th>Attack type</th><th>Speed</th><th>Time to crack</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Online (throttled)</td><td>100/hr</td><td class="ct-val" id="ct1">—</td></tr>
+          <tr><td>Online (no limit)</td><td>10/sec</td><td class="ct-val" id="ct2">—</td></tr>
+          <tr><td>Offline (slow hash)</td><td>10K/sec</td><td class="ct-val" id="ct3">—</td></tr>
+          <tr><td>Offline (fast hash)</td><td>10B/sec</td><td class="ct-val" id="ct4">—</td></tr>
+          <tr><td>GPU cluster (MD5)</td><td>100T/sec</td><td class="ct-val" id="ct5">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-label"><i class="ti ti-wand"></i> Secure password generator</div>
+      <input class="gen-output" type="text" id="genOut" readonly placeholder="Generated password appears here..."/>
+      <div class="gen-controls">
+        <div class="slider-row">
+          <label>Length</label>
+          <input type="range" min="8" max="64" value="20" id="lenSlider" step="1"/>
+          <span id="lenVal">20</span>
+        </div>
+        <div class="toggle-row" id="toggles">
+          <div class="tog active" data-key="upper"><i class="ti ti-letter-case-upper"></i> A–Z</div>
+          <div class="tog active" data-key="lower"><i class="ti ti-letter-case-lower"></i> a–z</div>
+          <div class="tog active" data-key="nums"><i class="ti ti-123"></i> 0–9</div>
+          <div class="tog active" data-key="spec"><i class="ti ti-asterisk"></i> !@#$</div>
+          <div class="tog" data-key="ambig"><i class="ti ti-eye-off"></i> No ambiguous</div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="generatePassword()"><i class="ti ti-refresh"></i> Generate</button>
+        <button class="btn btn-secondary" onclick="copyGen()"><i class="ti ti-copy"></i> Copy</button>
+      </div>
+      <div class="copied" id="copiedMsg">✓ Copied to clipboard!</div>
+    </div>
+  </div>
+
+  <!-- Row 5: Tip + History -->
+  <div class="grid" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-label"><i class="ti ti-bulb"></i> Recommendation</div>
+      <div class="tip"><i class="ti ti-info-circle"></i><span id="tipText">Enter a password above to receive security recommendations.</span></div>
+    </div>
+    <div class="card">
+      <div class="card-label"><i class="ti ti-history"></i> Analysis history <span style="color:var(--text3);font-size:10px;margin-left:4px;">(session only)</span></div>
+      <div class="history-list" id="histList"><div class="empty-hist">No passwords analyzed yet</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Common passwords list (top 30) ──
+const COMMON = ['password','123456','qwerty','abc123','letmein','monkey','dragon','master','sunshine','princess','welcome','shadow','superman','michael','football','iloveyou','admin','login','starwars','hello','pass','test','1234','root','secret','guest','trustno1','batman','baseball','hockey'];
+
+// ── Keyboard walk patterns ──
+const KBWALKS = ['qwerty','asdf','zxcv','qazwsx','1234567890','!@#$%','qwertyuiop','asdfghjkl'];
+
+// ── Charset size calculator ──
+function charsetSize(p){
+  let s=0;
+  if(/[a-z]/.test(p)) s+=26;
+  if(/[A-Z]/.test(p)) s+=26;
+  if(/[0-9]/.test(p)) s+=10;
+  if(/[^a-zA-Z0-9]/.test(p)) s+=32;
+  return s;
+}
+
+// ── Entropy ──
+function entropy(p){
+  if(!p.length) return 0;
+  const cs = charsetSize(p);
+  return Math.round(p.length * Math.log2(cs || 1));
+}
+
+// ── Crack time ──
+function crackTime(p, speedPerSec){
+  const cs = charsetSize(p);
+  const combos = Math.pow(cs, p.length);
+  const secs = combos / speedPerSec / 2; // avg half search space
+  return formatTime(secs);
+}
+function formatTime(s){
+  if(s < 1)          return {label:'< 1 second', cls:'ct-instant'};
+  if(s < 60)         return {label:Math.round(s)+' seconds', cls:'ct-instant'};
+  if(s < 3600)       return {label:Math.round(s/60)+' minutes', cls:'ct-fast'};
+  if(s < 86400)      return {label:Math.round(s/3600)+' hours', cls:'ct-fast'};
+  if(s < 2592000)    return {label:Math.round(s/86400)+' days', cls:'ct-medium'};
+  if(s < 31536000)   return {label:Math.round(s/2592000)+' months', cls:'ct-medium'};
+  if(s < 3153600000) return {label:Math.round(s/31536000)+' years', cls:'ct-slow'};
+  const y = s/31536000;
+  if(y < 1e6)        return {label:y.toExponential(1)+' years', cls:'ct-slow'};
+  return {label:'Centuries+', cls:'ct-slow'};
+}
+
+// ── Pattern detectors ──
+function hasKeyboardWalk(p){
+  const lp = p.toLowerCase();
+  return KBWALKS.some(w => lp.includes(w) || lp.includes(w.split('').reverse().join('')));
+}
+function hasDatePattern(p){
+  return /(\d{2}[\-\/]\d{2}[\-\/]\d{2,4})|(\d{4}[\-\/]\d{2}[\-\/]\d{2})|(19|20)\d{2}/.test(p);
+}
+function hasRepeating(p){
+  return /(.)\1{2,}/.test(p);
+}
+function hasSequential(p){
+  let count=0;
+  for(let i=0;i<p.length-2;i++){
+    if(p.charCodeAt(i+1)-p.charCodeAt(i)===1 && p.charCodeAt(i+2)-p.charCodeAt(i+1)===1) count++;
+  }
+  return count>=2;
+}
+function hasCommonWord(p){
+  const lp = p.toLowerCase();
+  return COMMON.some(w => lp.includes(w));
+}
+
+// ── Score (0–10) ──
+function score(p){
+  if(!p) return 0;
+  let s=0;
+  if(p.length>=8)  s+=1;
+  if(p.length>=12) s+=1;
+  if(p.length>=16) s+=1;
+  if(p.length>=20) s+=1;
+  if(/[A-Z]/.test(p)) s+=1;
+  if(/[a-z]/.test(p)) s+=1;
+  if(/[0-9]/.test(p)) s+=1;
+  if(/[^a-zA-Z0-9]/.test(p)) s+=1;
+  if(!hasRepeating(p) && !hasSequential(p)) s+=1;
+  if(!hasCommonWord(p) && !hasKeyboardWalk(p)) s+=1;
+  return Math.min(s, 10);
+}
+
+// ── Strength label ──
+const LABELS = ['','Very Weak','Weak','Weak','Fair','Fair','Moderate','Good','Strong','Very Strong','Excellent'];
+const COLORS = ['','#ef4444','#ef4444','#f97316','#f97316','#eab308','#eab308','#22c55e','#22c55e','#3b82f6','#6366f1'];
+
+// ── History ──
+let history = [];
+
+// ── Analyze ──
+function analyze(){
+  const p = document.getElementById('pwdInput').value;
+  const sc = score(p);
+  const ent = entropy(p);
+  const cs = charsetSize(p);
+
+  // Checks
+  const setChk = (id, pass) => {
+    const el = document.getElementById(id);
+    el.className = 'chk ' + (pass && p.length > 0 ? 'pass' : 'fail');
+  };
+  setChk('chkLen',      p.length >= 8);
+  setChk('chkLong',     p.length >= 16);
+  setChk('chkUpper',    /[A-Z]/.test(p));
+  setChk('chkLower',    /[a-z]/.test(p));
+  setChk('chkNum',      /[0-9]/.test(p));
+  setChk('chkSpecial',  /[^a-zA-Z0-9]/.test(p));
+  setChk('chkNoSeq',    !hasSequential(p) && p.length > 0);
+  setChk('chkNoRepeat', !hasRepeating(p) && p.length > 0);
+
+  // Bar + badge
+  const fill = document.getElementById('barFill');
+  const badge = document.getElementById('strengthBadge');
+  if(!p.length){
+    fill.style.width='0%'; fill.style.background='';
+    badge.textContent='No input'; badge.style.background=''; badge.style.color='';
+    document.getElementById('scLen').textContent='0';
+    document.getElementById('scScore').textContent='0/10';
+    document.getElementById('scEntropy').textContent='0 bit';
+    document.getElementById('scCharset').textContent='0';
+    document.getElementById('entropyVal').textContent='0 bit';
+    document.getElementById('entropyFill').style.width='0%';
+    document.getElementById('entropyDesc').textContent='No password entered';
+    ['ct1','ct2','ct3','ct4','ct5'].forEach(id=>{
+      const el=document.getElementById(id); el.textContent='—'; el.className='ct-val';
+    });
+    document.getElementById('tipText').textContent='Enter a password above to receive security recommendations.';
+    resetPatterns();
+    resetSegs();
+    return;
+  }
+
+  const pct = Math.min((sc/10)*100, 100);
+  fill.style.width = pct + '%';
+  fill.style.background = COLORS[sc] || '#ef4444';
+  badge.textContent = LABELS[sc] || 'Very Weak';
+  badge.style.background = (COLORS[sc]||'#ef4444')+'22';
+  badge.style.color = COLORS[sc] || '#ef4444';
+
+  // Segments
+  for(let i=0;i<5;i++){
+    const seg = document.getElementById('s'+i);
+    seg.style.background = (i < Math.ceil(sc/2)) ? (COLORS[sc]||'#ef4444') : 'var(--surface3)';
+  }
+
+  // Score cards
+  document.getElementById('scLen').textContent = p.length;
+  document.getElementById('scScore').textContent = sc+'/10';
+  document.getElementById('scEntropy').textContent = ent+' bit';
+  document.getElementById('scCharset').textContent = cs;
+
+  // Entropy
+  document.getElementById('entropyVal').textContent = ent+' bit';
+  document.getElementById('entropyFill').style.width = Math.min((ent/128)*100,100)+'%';
+  const eDesc = ent<28?'Very guessable':ent<36?'Guessable':ent<60?'Somewhat secure':ent<80?'Reasonably secure':'Highly secure';
+  document.getElementById('entropyDesc').textContent = eDesc + ' — ' + ent + ' bits of entropy';
+
+  // Patterns
+  const setBadge = (id, detected, label, warnOrDanger) => {
+    const el = document.getElementById(id);
+    if(detected){ el.textContent=label; el.className='pattern-badge '+(warnOrDanger==='danger'?'badge-danger':'badge-warn'); }
+    else{ el.textContent='Not found'; el.className='pattern-badge badge-ok'; }
+  };
+  setBadge('patKbd',    hasKeyboardWalk(p), 'Detected!', 'danger');
+  setBadge('patDate',   hasDatePattern(p),  'Detected!', 'warn');
+  setBadge('patRepeat', hasRepeating(p),    'Detected!', 'warn');
+  setBadge('patSeq',    hasSequential(p),   'Detected!', 'warn');
+  setBadge('patCommon', hasCommonWord(p),   'Detected!', 'danger');
+
+  // Crack times
+  const speeds = [100/3600, 10, 10000, 10e9, 100e12];
+  const ids = ['ct1','ct2','ct3','ct4','ct5'];
+  ids.forEach((id, i) => {
+    const r = crackTime(p, speeds[i]);
+    const el = document.getElementById(id);
+    el.textContent = r.label;
+    el.className = 'ct-val ' + r.cls;
+  });
+
+  // Tip
+  let tip = '';
+  if(hasCommonWord(p))         tip = 'Your password contains a common word. Avoid dictionary words — use random phrases or a generated password instead.';
+  else if(hasKeyboardWalk(p))  tip = 'Keyboard patterns like "qwerty" or "asdf" are easy to crack. Use random character combinations.';
+  else if(p.length < 12)       tip = 'Increase length to at least 12 characters. Length is the single most effective way to improve security.';
+  else if(!/[^a-zA-Z0-9]/.test(p)) tip = 'Adding special characters (!@#$%^&*) dramatically increases entropy and makes brute-force much harder.';
+  else if(hasRepeating(p))     tip = 'Avoid repeating characters (e.g. "aaa"). Each character should be unique or random.';
+  else if(sc >= 8)             tip = 'Strong password! Store it using a password manager like Bitwarden or 1Password. Never reuse it across services.';
+  else                         tip = 'Keep improving — add more character variety and length for maximum security.';
+  document.getElementById('tipText').textContent = tip;
+
+  // History (masked)
+  addHistory(p, sc);
+}
+
+function resetPatterns(){
+  ['patKbd','patDate','patRepeat','patSeq','patCommon'].forEach(id=>{
+    const el=document.getElementById(id); el.textContent='—'; el.className='pattern-badge badge-info';
+  });
+}
+function resetSegs(){
+  for(let i=0;i<5;i++) document.getElementById('s'+i).style.background='var(--surface3)';
+}
+
+function addHistory(p, sc){
+  const masked = p[0] + '*'.repeat(Math.max(p.length-2,1)) + (p.length>1?p[p.length-1]:'');
+  const existing = history.findIndex(h=>h.raw===p);
+  if(existing!==-1) return;
+  history.unshift({raw:p, masked, score:sc, label:LABELS[sc]||'Weak', color:COLORS[sc]||'#ef4444'});
+  if(history.length>6) history.pop();
+  renderHistory();
+}
+
+function renderHistory(){
+  const list = document.getElementById('histList');
+  if(!history.length){ list.innerHTML='<div class="empty-hist">No passwords analyzed yet</div>'; return; }
+  list.innerHTML = history.map((h,i)=>`
+    <div class="history-item">
+      <span class="hist-pwd">${h.masked}</span>
+      <span class="hist-score" style="background:${h.color}22;color:${h.color}">${h.label}</span>
+      <button class="hist-del" onclick="deleteHistory(${i})" title="Remove"><i class="ti ti-x"></i></button>
+    </div>
+  `).join('');
+}
+
+function deleteHistory(i){
+  history.splice(i,1);
+  renderHistory();
+}
+
+// ── Generator ──
+const genToggles = {upper:true,lower:true,nums:true,spec:true,ambig:false};
+document.querySelectorAll('.tog').forEach(t=>{
+  t.addEventListener('click',()=>{
+    const k = t.dataset.key;
+    genToggles[k] = !genToggles[k];
+    t.classList.toggle('active', genToggles[k]);
+  });
+});
+const lenSlider = document.getElementById('lenSlider');
+lenSlider.addEventListener('input',()=>{ document.getElementById('lenVal').textContent=lenSlider.value; });
+
+function generatePassword(){
+  let chars = '';
+  const ambig = 'O0Il1';
+  if(genToggles.upper){ let s='ABCDEFGHIJKLMNOPQRSTUVWXYZ'; if(genToggles.ambig) s=s.split('').filter(c=>!ambig.includes(c)).join(''); chars+=s; }
+  if(genToggles.lower){ let s='abcdefghijklmnopqrstuvwxyz'; if(genToggles.ambig) s=s.split('').filter(c=>!ambig.includes(c)).join(''); chars+=s; }
+  if(genToggles.nums){ let s='0123456789'; if(genToggles.ambig) s=s.split('').filter(c=>!ambig.includes(c)).join(''); chars+=s; }
+  if(genToggles.spec) chars+='!@#$%^&*()_+-=[]{}|;:,.<>?';
+  if(!chars) chars='abcdefghijklmnopqrstuvwxyz';
+  const len = parseInt(lenSlider.value);
+  let pwd='';
+  const arr = new Uint32Array(len);
+  window.crypto.getRandomValues(arr);
+  for(let i=0;i<len;i++) pwd+=chars[arr[i]%chars.length];
+  document.getElementById('genOut').value=pwd;
+}
+
+function copyGen(){
+  const val=document.getElementById('genOut').value;
+  if(!val)return;
+  navigator.clipboard.writeText(val).then(()=>{
+    const msg=document.getElementById('copiedMsg');
+    msg.style.opacity='1';
+    setTimeout(()=>msg.style.opacity='0',2000);
+  });
+}
+
+// ── Eye toggle ──
+document.getElementById('toggleBtn').addEventListener('click',()=>{
+  const inp=document.getElementById('pwdInput');
+  const icon=document.getElementById('eyeIcon');
+  if(inp.type==='password'){ inp.type='text'; icon.className='ti ti-eye-off'; }
+  else{ inp.type='password'; icon.className='ti ti-eye'; }
+});
+
+// ── Live analysis ──
+document.getElementById('pwdInput').addEventListener('input', analyze);
+
+// ── Init ──
+generatePassword();
+</script>
+</body>
+</html>
